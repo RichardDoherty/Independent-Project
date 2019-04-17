@@ -152,17 +152,19 @@ float distance(Data data_point, Point centroid){
   return distance;
 }
 
-/*Description:
- *PreConditions
- *PostConditions:
+/*Description: This function will assign clusters to each data point based on their distance to each centroid
+ *PreConditions: Point centroids adnd Data need to have valid x and y coordinates a
+ *PostConditions: The cluster member of each data point will be given the index the closest cluster
 */
 void assign_cluster(std::vector<Data> &data_points, std::vector<Point> centroids){
-  float min;
-  //int cluster_index;
+  float min, test_min;  //variables to track the min distance from a centroid to a data point and a variable to track the distance being tested
+  //loop through each data point
   for (int d = 0; d < data_points.size(); d++) {
-    min = std::numeric_limits<float>::max();
+    min = std::numeric_limits<float>::max();  //initialize the overall min variable to be the minimum possible float value
+    //loop through each centroid
     for (int c = 0; c < centroids.size(); c++) {
-      float test_min = distance(data_points[d], centroids[c]);
+      test_min = distance(data_points[d], centroids[c]); //Calulate the distance from the given centroid the given point
+      //if the minimum being tested is less than the overall min then update its value and set the cluster of the data to the cluster index
       if(test_min < min){
         min = test_min;
         data_points[d].set_cluster(c);
@@ -171,49 +173,56 @@ void assign_cluster(std::vector<Data> &data_points, std::vector<Point> centroids
   }
 }
 
-/*Description:
- *PreConditions
- *PostConditions:
+/*Description: Updates the centroids of eachc cluster coordinates by calculating the average x and y values of
+               each data point assigned to each cluster
+ *PreConditions: Data points have already been assigned to the closest cluster
+ *PostConditions: the centroids of each cluster will have updated values
 */
 void update_centroids(std::vector<Data> data_points, std::vector<Point> &centroids){
+  //vectors for count of each data point assigned to each clusters and the sum of the
+  //x and y coordinates for each data point assigned to each cluster
   std::vector<float> centroid_count(centroids.size());
   std::vector<float> centroid_x_sum(centroids.size());
   std::vector<float> centroid_y_sum(centroids.size());
 
-  int cluster_index;
+  int cluster_index; //variable to get the cluster assigned to each data point
+  //loop through each data point
   for(int n = 0; n < data_points.size(); n++){
-    cluster_index = data_points[n].get_cluster();
-    centroid_count[cluster_index]++;
-    centroid_x_sum[cluster_index] += data_points[n].get_x();
-    centroid_y_sum[cluster_index] += data_points[n].get_y();
+    cluster_index = data_points[n].get_cluster(); //get the cluster index assigned to the data point
+    centroid_count[cluster_index]++;  //increment the count for the given cluster
+    centroid_x_sum[cluster_index] += data_points[n].get_x();  //add the value of the x coordinate to the sum for the given cluster
+    centroid_y_sum[cluster_index] += data_points[n].get_y();  //add the value of the y coordinate to the sum for the given cluster
   }
+  //loop for each cluster centroid
   for(int v = 0; v < centroids.size(); v++){
+    //calculate the average of the x coordinates and store as the new x coordinate for the cluster centroid
     centroids[v].set_x( (float) ((centroid_x_sum[v]) / (centroid_count[v])) );
+    //calculate the average of the y coordinates and store as the new y coordinate for the cluster centroid
     centroids[v].set_y( (float) ((centroid_y_sum[v]) / (centroid_count[v])) );
   }
-
 }
 
-/*Description:
- *PreConditions
- *PostConditions:
+/*Description: Loads data from infile and stores the x and y value as a data point
+ *PreConditions: Each x and y coordinate is seperated by a space and the ifstream for a valid read file is opened and given in parameter
+ *PostConditions: A vector of data points is generated
 */
 std::vector<Data> load_data(std::ifstream& infile){
-  float buffer, temp_x, temp_y;
+  float buffer, temp_x, temp_y; //buffer stores read variable, temp x and y store values stored in buffer
   Data temp;
   std::vector<Data> data_points;
-  bool x = true;
+  bool x = true;  //variable to track whether the value being read in is an x value or y value
+  //loop while values are still being read from the infile
   while(infile >> buffer){
     if(x){
       temp_x = buffer;
     }else{
-      temp_y = buffer;
-      temp = Data(temp_x, temp_y);
-      data_points.push_back(temp);
+      temp_y = buffer;              //in this instance temp_y is not needed but makes what the func. is doing more clear
+      temp = Data(temp_x, temp_y);  //create the Data object
+      data_points.push_back(temp);  //add the Data object to the data point vector
     }
-    x = !x;
+    x = !x; //change the variable of whether the input is x or y to the opposite of what it already is
   }
-  return data_points;
+  return data_points; //return the vector of loaded data points
 }
 
 /*Description:
@@ -245,63 +254,69 @@ std::vector<Point> generate_centroids(int n_clusters, std::vector<Data> data_poi
   return centroids;
 }
 
-/*Description:
- *PreConditions
- *PostConditions:
+/*Description: Funtion to tell whether a vector of points is equal
+ *PreConditions: Two valid and initialized Point vectors are given in parameter. Vectors must also be the same size
+ *PostConditions: Returns a boolean of whether the vectors have all equal x and y coordinates
 */
 bool equal(std::vector<Point> current, std::vector<Point> prev){
+  //loops through all Points in the vector
   for(int n = 0; n < current.size(); n++){
+    //if either the x or y values are different return false
     if( (current[n].get_x() != prev[n].get_x()) || (current[n].get_y() != prev[n].get_y()) ){
       return false;
     }
   }
-  return true;
+  return true;  //if the function exits the for loop without returning false then the vecotrs are equal and we return true
 }
 
-/*Description:
- *PreConditions
- *PostConditions:
+/*Description: Main function for the program
 */
 int main(int argc, char const *argv[]) {
+
+  //open the data file for reading only
   std::ifstream infile;
   infile.open("C:/Users/Richard/Desktop/data.txt");
   if(infile.fail())
     std::cout << "Failed to load data" << '\n';
 
+  //load the data from the infile
+  std::vector<Data> data_points = load_data(infile);
+  infile.close();
+
+  //prompt the user for the number of clusters to create and generate the centroids
   int n_clusters;
   std::cout << "How many clusters would you like to generate?\nNumber of Clusters: ";
   std::cin >> n_clusters;
-  std::vector<Data> data_points = load_data(infile);
-  infile.close();
   std::vector<Point> centroids = generate_centroids(n_clusters, data_points);
 
-  std::vector<Point> prev_centroids(centroids.size());
-  int count = 0;
-
+  //Print the values of the intially choosen centroids
   std::cout << "\nInitial Centroids: " << std::endl;
   for (int n = 0; n < centroids.size(); n++) {
     centroids[n].display();
   }
 
+  //create a vector that will save precious centroid values
+  std::vector<Point> prev_centroids(centroids.size());
+
+  //loop until the values of the centroids doesn't change from the previous
   do{
-    prev_centroids = centroids;
-    assign_cluster(data_points, centroids);
-    update_centroids(data_points, centroids);
-    count++;
-    if(count == 1000){
-      break;
-      std::cout << "Force broke out of while loop" << '\n';
-    }
+    prev_centroids = centroids;               //save the current centroids as previous centroids
+    assign_cluster(data_points, centroids);   //assign cluster values to each data points
+    update_centroids(data_points, centroids); //update the centroid values
   }while(!equal(centroids, prev_centroids));
 
+  //print the final values of the centroids
   std::cout << "\nFinal Centroids: " << std::endl;
   for (int x = 0; x < centroids.size(); x++) {
     centroids[x].display();
   }
 
+  //Print the final values of the data points and their cluster assignments
   std::cout << "\nData Points Assignments: " << std::endl;
   for (int y = 0; y < data_points.size(); y++) {
     data_points[y].display();
   }
+
+  //Conclude the program
   return 0;
 }
